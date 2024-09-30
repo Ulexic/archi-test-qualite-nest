@@ -8,8 +8,13 @@ import {
 } from 'typeorm';
 import { Expose } from 'class-transformer';
 
+export const ITEM_LOWER_BOUND = 0
+export const ITEM_UPPER_BOUND = 5
+export const ORDER_MIN_PRICE = 10
+
 @Entity()
 export class Order {
+
   @CreateDateColumn()
   @Expose({ groups: ['group_orders'] })
   createdAt: Date;
