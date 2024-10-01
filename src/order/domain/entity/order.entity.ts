@@ -7,20 +7,60 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Expose } from 'class-transformer';
+import { CreateOrderCommand, ItemDetailCommand } from '../use-case/create-order.service';
+import { BadRequestException } from '@nestjs/common';
 
-export const ITEM_LOWER_BOUND = 0
-export const ITEM_UPPER_BOUND = 5
-export const ORDER_MIN_PRICE = 10
-export const ORDER_MAX_PRICE = 500
-
-export const ORDER_STATUS = {
-  PAID: 'Paid',
-  PENDING: 'Pending',
+export enum OrderStatus {
+  PENDING = 'PENDING',
+  SHIPPING_ADDRESS_SET = 'SHIPPING_ADDRESS_SET',
+  PAID = 'PAID',
+  SHIPPED = 'SHIPPED',
+  DELIVERED = 'DELIVERED',
+  CANCELED = 'CANCELED',
 }
-
 
 @Entity()
 export class Order {
+  static createOrder(orderCommand: CreateOrderCommand): Order {
+    const order = new Order();
+    if (
+      !orderCommand.customerName ||
+      !orderCommand.items ||
+      orderCommand.items.length === 0 ||
+      !orderCommand.shippingAddress ||
+      !orderCommand.invoiceAddress
+    ) {
+      throw new BadRequestException('Missing required fields');
+    }
+
+    if (orderCommand.items.length > Order.MAX_ITEMS) {
+      throw new BadRequestException(
+        'Cannot create order with more than 5 items',
+      );
+    }
+
+    const totalAmount = this.prototype.calculateOrderAmount(orderCommand.items);
+
+    order.orderItems = orderCommand.items.map(
+      (item) => new OrderItem(),
+    );
+
+    order.price = totalAmount;
+    order.customerName = orderCommand.customerName;
+    order.status = OrderStatus.PENDING
+    order.shippingAddress = orderCommand.shippingAddress;
+    order.invoiceAddress = orderCommand.invoiceAddress;
+
+    return order;
+  }
+
+  static MAX_ITEMS = 5;
+
+  static AMOUNT_MINIMUM = 5;
+
+  static AMOUNT_MAXIMUM = 500;
+
+  static SHIPPING_COST = 5;
 
   @CreateDateColumn()
   @Expose({ groups: ['group_orders'] })
@@ -28,15 +68,15 @@ export class Order {
 
   @PrimaryGeneratedColumn()
   @Expose({ groups: ['group_orders'] })
-  private id: string;
+  id: string;
 
   @Column({ nullable: true })
   @Expose({ groups: ['group_orders'] })
-  private price: number;
+  price: number;
 
   @Column()
   @Expose({ groups: ['group_orders'] })
-  private customerName: string;
+  customerName: string;
 
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
     nullable: true,
@@ -46,13 +86,15 @@ export class Order {
 
   @Column({ nullable: true })
   @Expose({ groups: ['group_orders'] })
-  private shippingAddress: string | null;
-
-  private invoiceAddress: string | null;
+  shippingAddress: string | null;
 
   @Column({ nullable: true })
   @Expose({ groups: ['group_orders'] })
-  private shippingAddressSetAt: Date | null;
+  invoiceAddress: string | null;
+
+  @Column({ nullable: true })
+  @Expose({ groups: ['group_orders'] })
+  shippingAddressSetAt: Date | null;
 
   @Column()
   @Expose({ groups: ['group_orders'] })
@@ -62,21 +104,78 @@ export class Order {
   @Expose({ groups: ['group_orders'] })
   private paidAt: Date | null;
 
-  public pay() {
-    console.log('paying order')
-    if (this.status !== ORDER_STATUS.PENDING) {
-      return 'Order is not pending'
+  @Column({ nullable: true })
+  @Expose({ groups: ['group_orders'] })
+  private cancelationDate: Date | null;
+
+  @Column({ nullable: true })
+  @Expose({ groups: ['group_orders'] })
+  private cancelationReason: string | null;
+
+  pay(): void {
+    if (this.status !== OrderStatus.PENDING) {
+      throw new Error('Commande déjà payée');
     }
 
-    if(this.price > ORDER_MAX_PRICE) {
-      return 'Order price is too high'
+    if (this.price > Order.AMOUNT_MAXIMUM) {
+      throw new Error('Montant maximum dépassé');
     }
 
-    this.status = ORDER_STATUS.PAID
-    this.paidAt = new Date()
+    this.status = OrderStatus.PAID;
+    this.paidAt = new Date();
   }
 
-  public getOrderItems() {
-    return this.orderItems
+  setShippingAddress(customerAddress: string): void {
+    if (
+      this.status !== OrderStatus.PENDING &&
+      this.status !== OrderStatus.SHIPPING_ADDRESS_SET
+    ) {
+      throw new Error('Commande non payée');
+    }
+
+    if (this.orderItems.length < Order.MAX_ITEMS) {
+      throw new Error('Trop d’articles');
+    }
+
+    this.status = OrderStatus.SHIPPING_ADDRESS_SET;
+    this.shippingAddressSetAt = new Date();
+    this.shippingAddress = customerAddress;
+    this.price += Order.SHIPPING_COST;
+  }
+
+  private calculateOrderAmount(items: ItemDetailCommand[]): number {
+    const totalAmount = items.reduce((sum, item) => sum + item.price, 0);
+
+    if (totalAmount < Order.AMOUNT_MINIMUM) {
+      throw new BadRequestException(
+        `Cannot create order with total amount less than ${Order.AMOUNT_MINIMUM}€`,
+      );
+    }
+
+    return totalAmount;
+  }
+
+  setInvoiceAddress(invoiceAddress: string) {
+    if (this.shippingAddress === null) {
+      throw new Error('Adresse de livraison non définie');
+    }
+
+    if(invoiceAddress === null) {
+      invoiceAddress = this.shippingAddress;
+    }
+
+    this.invoiceAddress = invoiceAddress;
+  }
+
+  cancel(cancelationReason: string): void {
+    if (this.status === OrderStatus.SHIPPED) {
+      throw new Error('Commande déjà envoyéé');
+    }
+
+    this.cancelationDate = new Date();
+    this.cancelationReason = cancelationReason;
+
+    this.status = OrderStatus.CANCELED
   }
 }
+

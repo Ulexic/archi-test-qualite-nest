@@ -19,7 +19,6 @@ export class OrderItem {
   })
   price: number;
 
-  // @ManyToOne(() => Order, (order) => order.getOrderItems())
   @ManyToOne(() => Order, (order) => order.orderItems)
   order: Order;
 }

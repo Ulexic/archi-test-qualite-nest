@@ -1,0 +1,19 @@
+import OrderRepository from "src/order/infrastructure/order.repository";
+import { Order } from "../entity/order.entity";
+import { NotFoundException } from "@nestjs/common";
+
+export class CancelOrderService {
+    constructor(private readonly orderRepository: OrderRepository) {}
+  
+    public async cancelOrder(orderId: string, cancelationReason: string): Promise<Order> {
+      const order = await this.orderRepository.findById(orderId);
+      
+      if (!order) {
+        throw new NotFoundException('Pas de commande');
+      }
+  
+      order.cancel(cancelationReason);
+  
+      return this.orderRepository.save(order);
+    }
+  }
