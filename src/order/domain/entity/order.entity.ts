@@ -11,6 +11,13 @@ import { Expose } from 'class-transformer';
 export const ITEM_LOWER_BOUND = 0
 export const ITEM_UPPER_BOUND = 5
 export const ORDER_MIN_PRICE = 10
+export const ORDER_MAX_PRICE = 500
+
+export const ORDER_STATUS = {
+  PAID: 'Paid',
+  PENDING: 'Pending',
+}
+
 
 @Entity()
 export class Order {
@@ -21,15 +28,15 @@ export class Order {
 
   @PrimaryGeneratedColumn()
   @Expose({ groups: ['group_orders'] })
-  id: string;
+  private id: string;
 
   @Column({ nullable: true })
   @Expose({ groups: ['group_orders'] })
-  price: number;
+  private price: number;
 
   @Column()
   @Expose({ groups: ['group_orders'] })
-  customerName: string;
+  private customerName: string;
 
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
     nullable: true,
@@ -39,19 +46,37 @@ export class Order {
 
   @Column({ nullable: true })
   @Expose({ groups: ['group_orders'] })
-  shippingAddress: string | null;
+  private shippingAddress: string | null;
 
-  invoiceAddress: string | null;
+  private invoiceAddress: string | null;
 
   @Column({ nullable: true })
   @Expose({ groups: ['group_orders'] })
-  shippingAddressSetAt: Date | null;
+  private shippingAddressSetAt: Date | null;
 
   @Column()
   @Expose({ groups: ['group_orders'] })
-  status: string;
+  private status: string;
 
   @Column({ nullable: true })
   @Expose({ groups: ['group_orders'] })
-  paidAt: Date | null;
+  private paidAt: Date | null;
+
+  public pay() {
+    console.log('paying order')
+    if (this.status !== ORDER_STATUS.PENDING) {
+      return 'Order is not pending'
+    }
+
+    if(this.price > ORDER_MAX_PRICE) {
+      return 'Order price is too high'
+    }
+
+    this.status = ORDER_STATUS.PAID
+    this.paidAt = new Date()
+  }
+
+  public getOrderItems() {
+    return this.orderItems
+  }
 }
