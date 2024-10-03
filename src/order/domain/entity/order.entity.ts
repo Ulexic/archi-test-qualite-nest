@@ -1,4 +1,4 @@
-import { ItemDetailCommand, OrderItem } from '../entity/order-item.entity';
+import { Expose } from 'class-transformer';
 import {
   Column,
   CreateDateColumn,
@@ -6,7 +6,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Expose } from 'class-transformer';
+import { ItemDetailCommand, OrderItem } from '../entity/order-item.entity';
 
 import { BadRequestException } from '@nestjs/common';
 
@@ -105,6 +105,10 @@ export class Order {
   //   return this;
   // }
 
+  public setStatus(status: OrderStatus): void {
+    this.status = status;
+  }
+  
   public constructor(createOrderCommand?: CreateOrderCommand) {
     if (!createOrderCommand) {
       return;
@@ -212,5 +216,20 @@ export class Order {
     this.status = OrderStatus.CANCELED;
     this.cancelAt = new Date('NOW');
     this.cancelReason = cancelReason;
+  }
+
+  getInvoiceInfos(): string {
+    if (
+      this.status !== OrderStatus.PAID &&
+      this.status !== OrderStatus.SHIPPED &&
+      this.status !== OrderStatus.DELIVERED
+    ) {
+      throw new Error('Order is not paid');
+    }
+
+    const itemsNames = this.orderItems
+      .map((item) => item.productName)
+      .join(', ');
+    return `invoice number ${this.id}, with items: ${itemsNames}`;
   }
 }

@@ -21,7 +21,7 @@ describe('Get Orders (e2e)', () => {
 
     // Création d'une commande en BDD de test
     orderRepository = moduleFixture.get('OrderRepository');
-    // order1 = new Order('John Doe', []);
+    order1 = new Order('John Doe', []);
     await orderRepository.save(order1);
   });
   it('should return all', async () => {
