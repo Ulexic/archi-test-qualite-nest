@@ -1,4 +1,4 @@
-import { OrderItem } from '../entity/order-item.entity';
+import { ItemDetailCommand, OrderItem } from '../entity/order-item.entity';
 import {
   Column,
   CreateDateColumn,
@@ -7,8 +7,15 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Expose } from 'class-transformer';
-import { CreateOrderCommand, ItemDetailCommand } from '../use-case/create-order.service';
+
 import { BadRequestException } from '@nestjs/common';
+
+export interface CreateOrderCommand {
+  items: ItemDetailCommand[];
+  customerName: string;
+  shippingAddress: string;
+  invoiceAddress: string;
+}
 
 export enum OrderStatus {
   PENDING = 'PENDING',
@@ -21,39 +28,6 @@ export enum OrderStatus {
 
 @Entity()
 export class Order {
-  static createOrder(orderCommand: CreateOrderCommand): Order {
-    const order = new Order();
-    if (
-      !orderCommand.customerName ||
-      !orderCommand.items ||
-      orderCommand.items.length === 0 ||
-      !orderCommand.shippingAddress ||
-      !orderCommand.invoiceAddress
-    ) {
-      throw new BadRequestException('Missing required fields');
-    }
-
-    if (orderCommand.items.length > Order.MAX_ITEMS) {
-      throw new BadRequestException(
-        'Cannot create order with more than 5 items',
-      );
-    }
-
-    const totalAmount = this.prototype.calculateOrderAmount(orderCommand.items);
-
-    order.orderItems = orderCommand.items.map(
-      (item) => new OrderItem(),
-    );
-
-    order.price = totalAmount;
-    order.customerName = orderCommand.customerName;
-    order.status = OrderStatus.PENDING
-    order.shippingAddress = orderCommand.shippingAddress;
-    order.invoiceAddress = orderCommand.invoiceAddress;
-
-    return order;
-  }
-
   static MAX_ITEMS = 5;
 
   static AMOUNT_MINIMUM = 5;
@@ -106,11 +80,81 @@ export class Order {
 
   @Column({ nullable: true })
   @Expose({ groups: ['group_orders'] })
-  private cancelationDate: Date | null;
+  private cancelAt: Date | null;
 
   @Column({ nullable: true })
   @Expose({ groups: ['group_orders'] })
-  private cancelationReason: string | null;
+  private cancelReason: string | null;
+
+  // methode factory : permet de ne pas utiliser le constructor
+  // car le constructor est utilisé par typeorm
+  // public createOrder(createOrderCommand: CreateOrderCommand): Order {
+  //   this.verifyOrderCommandIsValid(createOrderCommand);
+  //   this.verifyMaxItemIsValid(createOrderCommand);
+
+  //   this.orderItems = createOrderCommand.items.map(
+  //     (item) => new OrderItem(item),
+  //   );
+
+  //   this.customerName = createOrderCommand.customerName;
+  //   this.shippingAddress = createOrderCommand.shippingAddress;
+  //   this.invoiceAddress = createOrderCommand.invoiceAddress;
+  //   this.status = OrderStatus.PENDING;
+  //   this.price = this.calculateOrderAmount(createOrderCommand.items);
+
+  //   return this;
+  // }
+
+  public constructor(createOrderCommand?: CreateOrderCommand) {
+    if (!createOrderCommand) {
+      return;
+    }
+
+    this.verifyOrderCommandIsValid(createOrderCommand);
+    this.verifyMaxItemIsValid(createOrderCommand);
+
+    this.orderItems = createOrderCommand.items.map(
+      (item) => new OrderItem(item),
+    );
+
+    this.customerName = createOrderCommand.customerName;
+    this.shippingAddress = createOrderCommand.shippingAddress;
+    this.invoiceAddress = createOrderCommand.invoiceAddress;
+    this.status = OrderStatus.PENDING;
+    this.price = this.calculateOrderAmount(createOrderCommand.items);
+  }
+
+  private verifyMaxItemIsValid(createOrderCommand: CreateOrderCommand) {
+    if (createOrderCommand.items.length > Order.MAX_ITEMS) {
+      throw new BadRequestException(
+        'Cannot create order with more than 5 items',
+      );
+    }
+  }
+
+  private verifyOrderCommandIsValid(createOrderCommand: CreateOrderCommand) {
+    if (
+      !createOrderCommand.customerName ||
+      !createOrderCommand.items ||
+      createOrderCommand.items.length === 0 ||
+      !createOrderCommand.shippingAddress ||
+      !createOrderCommand.invoiceAddress
+    ) {
+      throw new BadRequestException('Missing required fields');
+    }
+  }
+
+  private calculateOrderAmount(items: ItemDetailCommand[]): number {
+    const totalAmount = items.reduce((sum, item) => sum + item.price, 0);
+
+    if (totalAmount < Order.AMOUNT_MINIMUM) {
+      throw new BadRequestException(
+        `Cannot create order with total amount less than ${Order.AMOUNT_MINIMUM}€`,
+      );
+    }
+
+    return totalAmount;
+  }
 
   pay(): void {
     if (this.status !== OrderStatus.PENDING) {
@@ -143,39 +187,30 @@ export class Order {
     this.price += Order.SHIPPING_COST;
   }
 
-  private calculateOrderAmount(items: ItemDetailCommand[]): number {
-    const totalAmount = items.reduce((sum, item) => sum + item.price, 0);
-
-    if (totalAmount < Order.AMOUNT_MINIMUM) {
-      throw new BadRequestException(
-        `Cannot create order with total amount less than ${Order.AMOUNT_MINIMUM}€`,
-      );
-    }
-
-    return totalAmount;
-  }
-
-  setInvoiceAddress(invoiceAddress: string) {
-    if (this.shippingAddress === null) {
+  setInvoiceAddress(invoiceAddress?: string): void {
+    if (this.status !== OrderStatus.SHIPPING_ADDRESS_SET) {
       throw new Error('Adresse de livraison non définie');
     }
 
-    if(invoiceAddress === null) {
-      invoiceAddress = this.shippingAddress;
+    if (!invoiceAddress) {
+      this.invoiceAddress = this.shippingAddress;
+      return;
     }
 
     this.invoiceAddress = invoiceAddress;
   }
 
-  cancel(cancelationReason: string): void {
-    if (this.status === OrderStatus.SHIPPED) {
-      throw new Error('Commande déjà envoyéé');
+  cancel(cancelReason: string): void {
+    if (
+      this.status === OrderStatus.SHIPPED ||
+      this.status === OrderStatus.DELIVERED ||
+      this.status === OrderStatus.CANCELED
+    ) {
+      throw new Error('Vous ne pouvez pas annuler cette commande');
     }
 
-    this.cancelationDate = new Date();
-    this.cancelationReason = cancelationReason;
-
-    this.status = OrderStatus.CANCELED
+    this.status = OrderStatus.CANCELED;
+    this.cancelAt = new Date('NOW');
+    this.cancelReason = cancelReason;
   }
 }
-
