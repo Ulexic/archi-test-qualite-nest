@@ -40,4 +40,12 @@ export default class OrderRepositoryTypeOrm
 
     await queryBuilder.delete().execute();
   }
+
+  async findByItemId(itemId: string): Promise<Order[]> {
+    const queryBuilder = this.createQueryBuilder('order');
+
+    queryBuilder.where('order.itemId = :itemId', { itemId });
+
+    return queryBuilder.getMany();
+  }
 }

@@ -1,7 +1,7 @@
-import { OrderItem } from "../../domain/entity/order-item.entity";
-import { Order, OrderStatus } from "../../domain/entity/order.entity";
-import { OrderRepositoryInterface } from "../../domain/port/persistance/order.repository.interface";
-import { SetShippingAddressOrderService } from "./set-shipping-address-order.service";
+import { OrderItem } from "../../../domain/entity/order-item.entity";
+import { Order, OrderStatus } from "../../../domain/entity/order.entity";
+import { OrderRepositoryInterface } from "../../../domain/port/persistance/order.repository.interface";
+import { SetInvoiceAddressOrderService } from "./set-invoice-address-order.service";
 
 class OrderRepositoryFake {
   async save(order: Order): Promise<Order> {
@@ -12,9 +12,9 @@ class OrderRepositoryFake {
 const orderRepositoryFake =
   new OrderRepositoryFake() as OrderRepositoryInterface;
 
-describe("the shipping address caN\'t be set if the order isn\'t paid", () => {
+describe("the invoice address can\'t be set if there is no shipping address", () => {
   it('should return an error', async () => {
-    const setShippingAddressOrderService = new SetShippingAddressOrderService(orderRepositoryFake);
+    const setInvoiceAddressOrderService = new SetInvoiceAddressOrderService(orderRepositoryFake);
 
     const order = new Order({
       customerName: 'John Doe',
@@ -34,7 +34,7 @@ describe("the shipping address caN\'t be set if the order isn\'t paid", () => {
     orderRepositoryFake.save(order);
     
     await expect(
-      setShippingAddressOrderService.execute(order.id, 'New Invoice Address')
+      setInvoiceAddressOrderService.execute(order.id, 'New Invoice Address')
     ).rejects.toThrow();
   });
 });

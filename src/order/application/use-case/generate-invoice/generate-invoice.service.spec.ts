@@ -1,7 +1,7 @@
-import { OrderItem } from "../../domain/entity/order-item.entity";
-import { Order, OrderStatus } from "../../domain/entity/order.entity";
-import { OrderRepositoryInterface } from "../../domain/port/persistance/order.repository.interface";
-import { GenerateInvoiceService } from "./generate-invoice.service";
+import { OrderItem } from "../../../domain/entity/order-item.entity";
+import { Order, OrderStatus } from "../../../domain/entity/order.entity";
+import { OrderRepositoryInterface } from "../../../domain/port/persistance/order.repository.interface";
+import { GenerateInvoiceService } from "../generate-invoice.service";
 
 class OrderRepositoryFake {
   async save(order: Order): Promise<Order> {

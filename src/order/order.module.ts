@@ -1,18 +1,18 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import OrderController from './infrastructure/presentation/order.controller';
-import { Order } from './domain/entity/order.entity';
-import { OrderItem } from './domain/entity/order-item.entity';
-import { CreateOrderService } from 'src/order/application/use-case/create-order.service';
-import { PayOrderService } from 'src/order/application/use-case/pay-order.service';
-import { CancelOrderService } from 'src/order/application/use-case/cancel-order.service';
-import { SetInvoiceAddressOrderService } from 'src/order/application/use-case/set-invoice-address-order.service';
-import { SetShippingAddressOrderService } from 'src/order/application/use-case/set-shipping-address-order.service';
-import OrderRepositoryTypeOrm from 'src/order/infrastructure/persistance/order.repository';
-import { OrderRepositoryInterface } from 'src/order/domain/port/persistance/order.repository.interface';
-import { GenerateInvoiceService } from 'src/order/application/use-case/generate-invoice.service';
+import { CancelOrderService } from 'src/order/application/use-case/cancel-order/cancel-order.service';
+import { CreateOrderService } from 'src/order/application/use-case/create-order/create-order.service';
+import { GenerateInvoiceService } from 'src/order/application/use-case/generate-invoice/generate-invoice.service';
+import { PayOrderService } from 'src/order/application/use-case/pay-order/pay-order.service';
+import { SetInvoiceAddressOrderService } from 'src/order/application/use-case/set-invoice-address/set-invoice-address-order.service';
+import { SetShippingAddressOrderService } from 'src/order/application/use-case/set-shipping-address/set-shipping-address-order.service';
 import { PdfGeneratorServiceInterface } from 'src/order/domain/port/pdf/pdf-generator.service.interface';
+import { OrderRepositoryInterface } from 'src/order/domain/port/persistance/order.repository.interface';
 import { PdfGeneratorService } from 'src/order/infrastructure/pdf/pdf-generator.service';
+import OrderRepositoryTypeOrm from 'src/order/infrastructure/persistance/order.repository';
+import { OrderItem } from './domain/entity/order-item.entity';
+import { Order } from './domain/entity/order.entity';
+import OrderController from './infrastructure/presentation/order.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Order, OrderItem])],

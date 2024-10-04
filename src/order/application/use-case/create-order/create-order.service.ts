@@ -1,5 +1,5 @@
-import { CreateOrderCommand, Order } from '../../domain/entity/order.entity';
-import { OrderRepositoryInterface } from '../../domain/port/persistance/order.repository.interface';
+import { CreateOrderCommand, Order } from '../../../domain/entity/order.entity';
+import { OrderRepositoryInterface } from '../../../domain/port/persistance/order.repository.interface';
 
 export class CreateOrderService {
   constructor(private readonly orderRepository: OrderRepositoryInterface) {}

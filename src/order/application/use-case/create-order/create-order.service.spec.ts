@@ -1,5 +1,5 @@
-import { Order } from '../../domain/entity/order.entity';
-import { OrderRepositoryInterface } from '../../domain/port/persistance/order.repository.interface';
+import { Order } from '../../../domain/entity/order.entity';
+import { OrderRepositoryInterface } from '../../../domain/port/persistance/order.repository.interface';
 import { CreateOrderService } from '../use-case/create-order.service';
 
 class OrderRepositoryFake {
