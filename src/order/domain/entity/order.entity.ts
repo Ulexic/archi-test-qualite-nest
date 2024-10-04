@@ -35,6 +35,7 @@ export enum OrderStatus {
 
 @Entity()
 export class Order {
+  
   static MAX_ITEMS = 5;
 
   static AMOUNT_MINIMUM = 5;
@@ -252,5 +253,9 @@ export class Order {
     });
     
     this.price = this.calculateOrderAmount(this.orderItems);
+  }
+
+  public setStatus(status: OrderStatus) {
+    this.status = status;
   }
 }

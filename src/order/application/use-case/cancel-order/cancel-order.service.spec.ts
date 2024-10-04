@@ -1,7 +1,7 @@
-import { OrderItem } from '../../../domain/entity/order-item.entity';
 import { Order, OrderStatus } from '../../../domain/entity/order.entity';
+import { Product } from '../../../domain/entity/product.entity';
 import { OrderRepositoryInterface } from '../../../domain/port/persistance/order.repository.interface';
-import { CancelOrderService } from '../use-case/cancel-order.service';
+import { CancelOrderService } from './cancel-order.service';
 
 class OrderRepositoryFake {
   async save(order: Order): Promise<Order> {
@@ -16,15 +16,22 @@ describe("an order can\'t be canceled if it has already been shipped", () => {
   it('should return an error', async () => {
     const cancelOrderService = new CancelOrderService(orderRepositoryFake);
 
+    const product = new Product({
+      name: "string",
+      price: 18,
+      description: "string",
+      stock: null,
+      isActive: null
+    })
+
+    const item = {
+      product: product,
+      quantity: 1
+    }
+
     const order = new Order({
       customerName: 'John Doe',
-      items: [
-        new OrderItem({
-          productName: 'item 1',
-          price: 10,
-          quantity: 1,
-        }),
-      ],
+      items: [item],
       shippingAddress: 'Shipping Address',
       invoiceAddress: 'Invoice Address',
     });
