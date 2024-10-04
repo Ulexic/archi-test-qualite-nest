@@ -6,12 +6,19 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { ItemDetailCommand, OrderItem } from '../entity/order-item.entity';
+import { ItemDetailCommand, ItemOrderCreate, OrderItem } from '../entity/order-item.entity';
 
 import { BadRequestException } from '@nestjs/common';
 
-export interface CreateOrderCommand {
+export interface OrderDetailCommand {
   items: ItemDetailCommand[];
+  customerName: string;
+  shippingAddress: string;
+  invoiceAddress: string;
+}
+
+export interface CreateOrderCommand {
+  items: ItemOrderCreate[];
   customerName: string;
   shippingAddress: string;
   invoiceAddress: string;
@@ -86,29 +93,6 @@ export class Order {
   @Expose({ groups: ['group_orders'] })
   private cancelReason: string | null;
 
-  // methode factory : permet de ne pas utiliser le constructor
-  // car le constructor est utilisé par typeorm
-  // public createOrder(createOrderCommand: CreateOrderCommand): Order {
-  //   this.verifyOrderCommandIsValid(createOrderCommand);
-  //   this.verifyMaxItemIsValid(createOrderCommand);
-
-  //   this.orderItems = createOrderCommand.items.map(
-  //     (item) => new OrderItem(item),
-  //   );
-
-  //   this.customerName = createOrderCommand.customerName;
-  //   this.shippingAddress = createOrderCommand.shippingAddress;
-  //   this.invoiceAddress = createOrderCommand.invoiceAddress;
-  //   this.status = OrderStatus.PENDING;
-  //   this.price = this.calculateOrderAmount(createOrderCommand.items);
-
-  //   return this;
-  // }
-
-  public setStatus(status: OrderStatus): void {
-    this.status = status;
-  }
-  
   public constructor(createOrderCommand?: CreateOrderCommand) {
     if (!createOrderCommand) {
       return;
@@ -126,38 +110,6 @@ export class Order {
     this.invoiceAddress = createOrderCommand.invoiceAddress;
     this.status = OrderStatus.PENDING;
     this.price = this.calculateOrderAmount(createOrderCommand.items);
-  }
-
-  private verifyMaxItemIsValid(createOrderCommand: CreateOrderCommand) {
-    if (createOrderCommand.items.length > Order.MAX_ITEMS) {
-      throw new BadRequestException(
-        'Cannot create order with more than 5 items',
-      );
-    }
-  }
-
-  private verifyOrderCommandIsValid(createOrderCommand: CreateOrderCommand) {
-    if (
-      !createOrderCommand.customerName ||
-      !createOrderCommand.items ||
-      createOrderCommand.items.length === 0 ||
-      !createOrderCommand.shippingAddress ||
-      !createOrderCommand.invoiceAddress
-    ) {
-      throw new BadRequestException('Missing required fields');
-    }
-  }
-
-  private calculateOrderAmount(items: ItemDetailCommand[]): number {
-    const totalAmount = items.reduce((sum, item) => sum + item.price, 0);
-
-    if (totalAmount < Order.AMOUNT_MINIMUM) {
-      throw new BadRequestException(
-        `Cannot create order with total amount less than ${Order.AMOUNT_MINIMUM}€`,
-      );
-    }
-
-    return totalAmount;
   }
 
   pay(): void {
@@ -189,6 +141,56 @@ export class Order {
     this.shippingAddressSetAt = new Date();
     this.shippingAddress = customerAddress;
     this.price += Order.SHIPPING_COST;
+  }
+
+  private verifyMaxItemIsValid(createOrderCommand: CreateOrderCommand) {
+    if (createOrderCommand.items.length > Order.MAX_ITEMS) {
+      throw new BadRequestException(
+        'Cannot create order with more than 5 items',
+      );
+    }
+  }
+
+  private verifyOrderCommandIsValid(createOrderCommand: CreateOrderCommand) {
+    if (
+      !createOrderCommand.customerName ||
+      !createOrderCommand.items ||
+      createOrderCommand.items.length === 0 ||
+      !createOrderCommand.shippingAddress ||
+      !createOrderCommand.invoiceAddress
+    ) {
+      throw new BadRequestException('Missing required fields');
+    }
+  }
+
+  public createOrder(createOrderCommand: CreateOrderCommand): Order {
+    this.verifyOrderCommandIsValid(createOrderCommand);
+    this.verifyMaxItemIsValid(createOrderCommand);
+
+    this.orderItems = createOrderCommand.items.map(
+      (item) => new OrderItem(item),
+    );
+
+    this.customerName = createOrderCommand.customerName;
+    this.shippingAddress = createOrderCommand.shippingAddress;
+    this.invoiceAddress = createOrderCommand.invoiceAddress;
+    this.status = OrderStatus.PENDING;
+    this.price = this.calculateOrderAmount(createOrderCommand.items);
+
+    return this;
+  }
+
+  private calculateOrderAmount(items: ItemOrderCreate[]): number {
+    // TODO: fix by getting the price from the product
+    const totalAmount = items.reduce((sum, item) => sum + item.product.getPrice(), 0);
+
+    if (totalAmount < Order.AMOUNT_MINIMUM) {
+      throw new BadRequestException(
+        `Cannot create order with total amount less than ${Order.AMOUNT_MINIMUM}€`,
+      );
+    }
+
+    return totalAmount;
   }
 
   setInvoiceAddress(invoiceAddress?: string): void {
@@ -231,5 +233,24 @@ export class Order {
       .map((item) => item.productName)
       .join(', ');
     return `invoice number ${this.id}, with items: ${itemsNames}`;
+  }
+
+  public addItems(items: ItemOrderCreate[]) {
+    if(this.status != OrderStatus.PENDING) {
+      throw new Error('Order is not pending');
+    }
+
+    // merge items with existing items if they exist and create new ones if they don't
+    items.forEach((item) => {
+      const existingItem = this.orderItems.find((orderItem) => orderItem.product.getId() === item.product.getId());
+
+      if(existingItem) {
+        existingItem.quantity += item.quantity;
+      } else {
+        this.orderItems.push(new OrderItem(item));
+      }
+    });
+    
+    this.price = this.calculateOrderAmount(this.orderItems);
   }
 }

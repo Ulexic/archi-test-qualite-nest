@@ -1,5 +1,5 @@
 import { OrderRepositoryInterface } from 'src/order/domain/port/persistance/order.repository.interface';
-import { ProductRepositoryInterface } from 'src/product/port/persistance/product.repository.interface';
+import { ProductRepositoryInterface } from 'src/order/domain/port/persistance/product.repository.interface';
 
 export class DeleteProductService {
   constructor(private readonly productRepository: ProductRepositoryInterface, private readonly orderRepository: OrderRepositoryInterface) {}

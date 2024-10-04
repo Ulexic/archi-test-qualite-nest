@@ -1,9 +1,11 @@
 // how to fix jest import error?
+import { SendMailServiceInterface } from 'src/order/domain/port/mail/send-mail.service.interface';
+import { ProductRepositoryInterface } from 'src/order/domain/port/persistance/product.repository.interface';
 import { Order } from '../../../domain/entity/order.entity';
 import { Product } from '../../../domain/entity/product.entity';
 import { OrderRepositoryInterface } from '../../../domain/port/persistance/order.repository.interface';
-import { ProductRepositoryInterface } from '../../../domain/port/persistance/product.repository.interface';
-import { CreateOrderService } from './create-order.service';
+import { AddItemToOrderService } from './add-item-to-order.service';
+
 
 class OrderRepositoryFake {
   async save(order: Order): Promise<Order> {
@@ -48,26 +50,23 @@ class ProductRepositoryFake {
     });
   }
 } 
+
+class SendMailServiceFake {
+  async sendMail(text: string) {
+    return;
+  }
+}
   
 const orderRepositoryFake = new OrderRepositoryFake() as OrderRepositoryInterface;
 const productRepositoryFake = new ProductRepositoryFake() as ProductRepositoryInterface;
+const sendMailServiceFake = new SendMailServiceFake() as SendMailServiceInterface;
 
-describe("an order can't be created if the order have more than 5 item", () => {
+describe("x items can't be added to an order if the stock < x", () => {
   it('should return an error', async () => {
-    const createOrderService = new CreateOrderService(orderRepositoryFake, productRepositoryFake);
-
-    const item = {
-      productId: "product",
-      quantity: 1
-    }
+    const addItemToOrderService = new AddItemToOrderService(orderRepositoryFake, productRepositoryFake, sendMailServiceFake);
 
     await expect(
-      createOrderService.execute({
-        customerName: 'John Doe',
-        items: [item, item, item, item, item, item],
-        shippingAddress: 'Shipping Address',
-        invoiceAddress: 'Invoice Address',
-      }),
+      addItemToOrderService.execute('id', [{productId: 'id', quantity: 6}]),
     ).rejects.toThrow();
   });
 });

@@ -1,7 +1,8 @@
 import { Body, Controller, Delete, Param, Post } from '@nestjs/common';
-import { CreateProductService } from 'src/product/application/use-case/create-product-service';
-import { DeleteProductService } from 'src/product/application/use-case/delete-product.service';
-import { CreateProductOrder } from 'src/product/domain/entity/product.entity';
+import { CreateProductService } from 'src/order/application/use-case/create-product/create-product-service';
+import { DeleteProductService } from 'src/order/application/use-case/delete-product/delete-product.service';
+import { CreateProductOrder } from 'src/order/domain/entity/product.entity';
+
 
 @Controller('product')
 export class ProductController {

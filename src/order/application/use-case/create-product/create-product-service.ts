@@ -1,5 +1,5 @@
-import { CreateProductOrder, Product } from 'src/product/domain/entity/product.entity';
-import { ProductRepositoryInterface } from 'src/product/port/persistance/product.repository.interface';
+import { CreateProductOrder, Product } from '../../../domain/entity/product.entity';
+import { ProductRepositoryInterface } from '../../../domain/port/persistance/product.repository.interface';
 
 export class CreateProductService {
   constructor(private readonly productRepository: ProductRepositoryInterface) {}

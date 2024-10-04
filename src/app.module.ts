@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
 import { OrderModule } from './order/order.module';
-import { EventEmitterModule } from '@nestjs/event-emitter';
-import { ProductModule } from './product/product.module';
 
 @Module({
   imports: [
@@ -23,7 +22,6 @@ import { ProductModule } from './product/product.module';
     }),
     OrderModule,
     EventEmitterModule.forRoot(),
-    ProductModule,
   ],
   controllers: [AppController],
   providers: [AppService],

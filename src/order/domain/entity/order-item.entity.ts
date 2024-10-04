@@ -1,10 +1,16 @@
-import { Order } from '../entity/order.entity';
+
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Order } from '../entity/order.entity';
+import { Product } from './product.entity';
 
 export interface ItemDetailCommand {
-  productName: string;
-  price: number;
+  productId: string;
   quantity: number;
+}
+
+export interface ItemOrderCreate {
+  product: Product,
+  quantity: number,
 }
 
 @Entity('order-item')
@@ -27,21 +33,27 @@ export class OrderItem {
   })
   price: number;
 
+  @ManyToOne(() => Product, (product) => product)
+  product: Product;
+
   @ManyToOne(() => Order, (order) => order.orderItems)
   order: Order;
 
-  constructor(itemCommand: ItemDetailCommand) {
-    if (!itemCommand) {
+  constructor(itemOrderCreate: ItemOrderCreate) {
+    if (!itemOrderCreate) {
       return;
     }
-    if (itemCommand.quantity > OrderItem.MAX_QUANTITY) {
+    if (itemOrderCreate.quantity > OrderItem.MAX_QUANTITY) {
       throw new Error(
         'Quantity of items cannot exceed ' + OrderItem.MAX_QUANTITY,
       );
     }
 
-    this.productName = itemCommand.productName;
-    this.quantity = itemCommand.quantity;
-    this.price = itemCommand.price;
+    this.product = itemOrderCreate.product
+    this.quantity = itemOrderCreate.quantity;
+  }
+
+  public getId(): string {
+    return this.id;
   }
 }
